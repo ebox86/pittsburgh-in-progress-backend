@@ -36,7 +36,7 @@
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-pubsub</artifactId>
-            <version>1.122.0</version>
+            <version>1.144.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
