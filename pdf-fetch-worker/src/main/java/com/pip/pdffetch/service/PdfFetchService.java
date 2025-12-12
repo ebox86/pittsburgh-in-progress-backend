@@ -55,10 +55,7 @@ public class PdfFetchService {
                 .build();
     }
 
-    public record FetchResult(String objectName, String contentType, long sizeBytes) {
-    }
-
-    public FetchResult fetchAndStorePdf(DocumentDiscoveryRequest request) {
+    public PdfFetchOutcome fetchAndStorePdf(DocumentDiscoveryRequest request) {
         if (request == null || request.getMeetingUrl() == null) {
             throw new IllegalArgumentException("DocumentDiscoveryRequest and meetingUrl must be provided");
         }
@@ -70,8 +67,9 @@ public class PdfFetchService {
         BlobId blobId = BlobId.of(bucket, objectName);
         Blob existingBlob = storage.get(blobId);
         if (existingBlob != null) {
-            log.info("Skipping fetch for {} because gs://{}/{} already exists", request.getMeetingUrl(), bucket, objectName);
-            return new FetchResult(objectName, existingBlob.getContentType(), existingBlob.getSize());
+            log.info("Reusing existing PDF for {} at gs://{}/{} ({} bytes)",
+                    meetingId, bucket, objectName, existingBlob.getSize());
+            return new PdfFetchOutcome(existingBlob, PdfFetchStatus.REUSED);
         }
 
         URI pdfUri = URI.create(request.getMeetingUrl());
@@ -106,19 +104,20 @@ public class PdfFetchService {
             BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
                     .setContentType(contentType)
                     .build();
-            long sizeBytes;
             try (InputStream bodyStream = response.body()) {
-                sizeBytes = streamToStorage(bodyStream, blobInfo);
+                streamToStorage(bodyStream, blobInfo);
             } catch (IOException e) {
                 throw new IllegalStateException("Failed to download PDF", e);
             }
 
             Blob blob = storage.get(blobId);
-            long finalSize = blob != null ? blob.getSize() : sizeBytes;
-            String finalContentType = blob != null ? blob.getContentType() : contentType;
-            log.info("Stored PDF for {} into gs://{}/{} ({} bytes)", meetingId, bucket, objectName, finalSize);
+            if (blob == null) {
+                throw new IllegalStateException("Failed to verify uploaded PDF for " + objectName);
+            }
+            log.info("Stored new PDF for {} into gs://{}/{} ({} bytes)",
+                    meetingId, bucket, objectName, blob.getSize());
 
-            return new FetchResult(objectName, finalContentType, finalSize);
+            return new PdfFetchOutcome(blob, PdfFetchStatus.CREATED);
         }
 
         Map<String, List<String>> headers = response.headers().map();

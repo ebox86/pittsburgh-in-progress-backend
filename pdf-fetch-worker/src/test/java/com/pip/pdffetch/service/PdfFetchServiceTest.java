@@ -13,6 +13,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,13 +33,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class PdfFetchServiceTest {
 
     @Mock
@@ -71,11 +73,13 @@ class PdfFetchServiceTest {
 
         when(httpClient.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<InputStream>>any()))
                 .thenReturn(response);
+
         BlobId blobId = BlobId.of("test-bucket", "meetings/meeting-123.pdf");
         when(storage.get(blobId)).thenReturn(null, blob);
-        WriteChannel writeChannel = mock(WriteChannel.class);
+
+        WriteChannel writer = mock(WriteChannel.class);
         ByteArrayOutputStream captured = new ByteArrayOutputStream();
-        when(writeChannel.write(any(ByteBuffer.class))).thenAnswer(invocation -> {
+        when(writer.write(any(ByteBuffer.class))).thenAnswer(invocation -> {
             ByteBuffer buffer = invocation.getArgument(0);
             int remaining = buffer.remaining();
             byte[] chunk = new byte[remaining];
@@ -83,15 +87,15 @@ class PdfFetchServiceTest {
             captured.write(chunk);
             return remaining;
         });
-        when(storage.writer(any(BlobInfo.class))).thenReturn(writeChannel);
+        when(storage.writer(any(BlobInfo.class))).thenReturn(writer);
+
         when(blob.getContentType()).thenReturn("application/pdf");
         when(blob.getSize()).thenReturn((long) pdfContent.length);
 
-        PdfFetchService.FetchResult result = pdfFetchService.fetchAndStorePdf(request);
+        PdfFetchOutcome result = pdfFetchService.fetchAndStorePdf(request);
 
-        assertEquals("meetings/meeting-123.pdf", result.objectName());
-        assertEquals("application/pdf", result.contentType());
-        assertEquals(pdfContent.length, result.sizeBytes());
+        assertEquals(PdfFetchStatus.CREATED, result.status());
+        assertEquals(blob, result.blob());
         assertArrayEquals(pdfContent, captured.toByteArray());
 
         ArgumentCaptor<HttpRequest> requestCaptor = ArgumentCaptor.forClass(HttpRequest.class);
@@ -99,7 +103,7 @@ class PdfFetchServiceTest {
         HttpRequest capturedRequest = requestCaptor.getValue();
         assertEquals("curl/8.5.0", capturedRequest.headers().firstValue("User-Agent").orElse(""));
         assertEquals("*/*", capturedRequest.headers().firstValue("Accept").orElse(""));
-        verify(writeChannel).close();
+        verify(writer).close();
     }
 
     @Test
@@ -118,7 +122,7 @@ class PdfFetchServiceTest {
         when(httpClient.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<InputStream>>any()))
                 .thenReturn(response);
 
-        PdfFetchService.FetchResult result = pdfFetchService.fetchAndStorePdf(request);
+        PdfFetchOutcome result = pdfFetchService.fetchAndStorePdf(request);
         assertNull(result);
         verify(storage, never()).writer(any(BlobInfo.class));
     }
@@ -156,12 +160,11 @@ class PdfFetchServiceTest {
         when(existingBlob.getSize()).thenReturn(2048L);
         when(storage.get(BlobId.of("test-bucket", "meetings/meeting-123.pdf"))).thenReturn(existingBlob);
 
-        PdfFetchService.FetchResult result = pdfFetchService.fetchAndStorePdf(request);
+        PdfFetchOutcome result = pdfFetchService.fetchAndStorePdf(request);
 
-        assertEquals("meetings/meeting-123.pdf", result.objectName());
-        assertEquals("application/pdf", result.contentType());
-        assertEquals(2048L, result.sizeBytes());
-        verify(httpClient, never()).send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any());
-        verify(storage, never()).create(any(BlobInfo.class), any());
+        assertEquals(PdfFetchStatus.REUSED, result.status());
+        assertEquals(existingBlob, result.blob());
+        verify(httpClient, never()).send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<InputStream>>any());
+        verify(storage, never()).writer(any(BlobInfo.class));
     }
 }

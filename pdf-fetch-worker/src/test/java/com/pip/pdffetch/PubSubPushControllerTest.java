@@ -1,10 +1,13 @@
 package com.pip.pdffetch;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.cloud.storage.Blob;
 import com.pip.pdffetch.api.PubSubPushController;
 import com.pip.pdffetch.config.PdfFetchConfig;
 import com.pip.pdffetch.model.DocumentDiscoveryRequest;
+import com.pip.pdffetch.service.PdfFetchOutcome;
 import com.pip.pdffetch.service.PdfFetchService;
+import com.pip.pdffetch.service.PdfFetchStatus;
 import com.pip.pdffetch.service.PdfStoredPublisherService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -20,6 +23,7 @@ import java.util.Base64;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,9 +58,13 @@ class PubSubPushControllerTest {
         request.setMeetingType("planning-commission");
         request.setMeetingDate("2025-11-18");
 
-        PdfFetchService.FetchResult fetchResult =
-                new PdfFetchService.FetchResult("meetings/PC-2025-11-18.pdf", "application/pdf", 2048L);
-        when(pdfFetchService.fetchAndStorePdf(any(DocumentDiscoveryRequest.class))).thenReturn(fetchResult);
+        Blob blob = mock(Blob.class);
+        when(blob.getBucket()).thenReturn("pgh-pdfs");
+        when(blob.getName()).thenReturn("meetings/PC-2025-11-18.pdf");
+        when(blob.getContentType()).thenReturn("application/pdf");
+        when(blob.getSize()).thenReturn(2048L);
+        PdfFetchOutcome outcome = new PdfFetchOutcome(blob, PdfFetchStatus.CREATED);
+        when(pdfFetchService.fetchAndStorePdf(any(DocumentDiscoveryRequest.class))).thenReturn(outcome);
         when(pdfFetchConfig.getBucket()).thenReturn("pgh-pdfs");
 
         String documentJson = objectMapper.writeValueAsString(request);
