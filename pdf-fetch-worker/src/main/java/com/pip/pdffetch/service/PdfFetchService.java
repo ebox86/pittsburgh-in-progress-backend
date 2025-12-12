@@ -7,6 +7,7 @@ import com.google.cloud.storage.Storage;
 import com.pip.pdffetch.model.DocumentDiscoveryRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,7 +16,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -27,10 +31,20 @@ public class PdfFetchService {
     private final String bucket;
     private final HttpClient httpClient;
 
+    @Autowired
     public PdfFetchService(Storage storage, @Value("${pip.pdf-bucket}") String bucket) {
+        this(storage, bucket, createDefaultHttpClient());
+    }
+
+    PdfFetchService(Storage storage, String bucket, HttpClient httpClient) {
         this.storage = storage;
         this.bucket = bucket;
-        this.httpClient = HttpClient.newBuilder()
+        this.httpClient = httpClient;
+    }
+
+    private static HttpClient createDefaultHttpClient() {
+        return HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .connectTimeout(Duration.ofSeconds(30))
                 .build();
@@ -48,6 +62,8 @@ public class PdfFetchService {
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(pdfUri)
                 .GET()
+                .header("User-Agent", "curl/8.5.0")
+                .header("Accept", "*/*")
                 .build();
 
         HttpResponse<byte[]> response;
@@ -60,8 +76,15 @@ public class PdfFetchService {
             throw new IllegalStateException("Failed to download PDF", e);
         }
 
-        if (response.statusCode() != 200) {
-            throw new IllegalStateException("Unexpected status " + response.statusCode()
+        byte[] body = response.body();
+        int statusCode = response.statusCode();
+
+        if (statusCode != 200) {
+            Map<String, List<String>> headers = response.headers().map();
+            String snippet = extractResponseSnippet(body);
+            log.warn("Failed to fetch PDF from {} - status {}, headers {}, bodySnippet='{}'",
+                    request.getMeetingUrl(), statusCode, headers, snippet);
+            throw new IllegalStateException("Unexpected status " + statusCode
                     + " while fetching PDF from " + request.getMeetingUrl());
         }
 
@@ -73,7 +96,6 @@ public class PdfFetchService {
             log.warn("PDF response for {} returned non-PDF content type {}", request.getMeetingId(), contentType);
         }
 
-        byte[] body = response.body();
         long sizeBytes = body.length;
         String meetingId = Optional.ofNullable(request.getMeetingId())
                 .filter(id -> !id.isBlank())
@@ -89,5 +111,13 @@ public class PdfFetchService {
         log.info("Stored PDF for {} into gs://{}/{} ({} bytes)", meetingId, bucket, objectName, sizeBytes);
 
         return new FetchResult(objectName, blob.getContentType(), blob.getSize());
+    }
+
+    private static String extractResponseSnippet(byte[] body) {
+        if (body == null || body.length == 0) {
+            return "";
+        }
+        int length = Math.min(body.length, 512);
+        return new String(body, 0, length, StandardCharsets.UTF_8);
     }
 }
