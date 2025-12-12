@@ -1,4 +1,4 @@
-name: Build and push ingest-api
+name: Build and deploy ingest-api
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'ingest-api/**'
+      - '.github/workflows/ingest-api-build-and-deploy.yml'
   workflow_dispatch: {}
 
 jobs:
@@ -14,6 +15,11 @@ jobs:
     permissions:
       contents: read
       packages: write
+
+    env:
+      IMAGE_NAME: ghcr.io/ebox86/pip-ingest-api:main
+      IMAGE_NAME_LATEST: ghcr.io/ebox86/pip-ingest-api:latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -38,14 +44,14 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t ghcr.io/ebox86/pip-ingest-api:main \
-            -t ghcr.io/ebox86/pip-ingest-api:latest \
+            -t "${IMAGE_NAME}" \
+            -t "${IMAGE_NAME_LATEST}" \
             ingest-api
 
       - name: Push Docker images
         run: |
-          docker push ghcr.io/ebox86/pip-ingest-api:main
-          docker push ghcr.io/ebox86/pip-ingest-api:latest
+          docker push "${IMAGE_NAME}"
+          docker push "${IMAGE_NAME_LATEST}"
 
   deploy-cloud-run:
     needs: build-and-push
@@ -56,16 +62,24 @@ jobs:
       contents: read
       id-token: write
 
+    env:
+      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-ingest-api:main
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: GCP auth (Workload Identity)
+        uses: ebox86/gh-custom-actions/gcloud-wif-auth@v1
+        with:
+          project_id: pittsburgh-in-progress
+          workload_identity_provider: projects/${{ secrets.GCP_PGH_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider
+          service_account: ci-runner@pittsburgh-in-progress.iam.gserviceaccount.com
+
       - name: Deploy ingest-api to Cloud Run
-        uses: ./.github/actions/deploy-cloud-run
+        uses: ebox86/gh-custom-actions/deploy-cloud-run@v1
         with:
           project_id: pittsburgh-in-progress
           region: us-east4
           service_name: pgh-ingest-api
-          image: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-ingest-api:main
-          workload_identity_provider: projects/${{ secrets.GCP_PGH_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider
-          service_account: ci-runner@pittsburgh-in-progress.iam.gserviceaccount.com
+          image: ${{ env.AR_IMAGE }}
