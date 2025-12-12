@@ -7,12 +7,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.io.IOException;
-import java.util.Objects;
 
 @Configuration
 public class PubSubConfig {
 
-    @Value("${pip.project-id:#{systemEnvironment['PIP_PROJECT_ID'] ?: systemEnvironment['GOOGLE_CLOUD_PROJECT']}}")
+    @Value("${pip.project-id:}")
     private String projectId;
 
     @Value("${pip.meeting-topic:pgh-meeting-discovered}")
@@ -20,17 +19,20 @@ public class PubSubConfig {
 
     @Bean(destroyMethod = "shutdown")
     public Publisher meetingPublisher() throws IOException {
-        String project = projectId != null ? projectId.trim() : null;
-        if (project == null || project.isBlank()) {
-            throw new IllegalStateException("Google Cloud project ID must be configured via pip.project-id or PIP_PROJECT_ID/GOOGLE_CLOUD_PROJECT");
+        if (projectId == null || projectId.isBlank()) {
+            throw new IllegalStateException(
+                "Project ID not configured. Set PIP_PROJECT_ID or GOOGLE_CLOUD_PROJECT / pip.project-id."
+            );
         }
 
         String topic = meetingTopic != null ? meetingTopic.trim() : "";
         if (topic.isBlank()) {
-            throw new IllegalStateException("Meeting topic must be configured via pip.meeting-topic");
+            throw new IllegalStateException(
+                "Meeting topic must be configured via pip.meeting-topic / PIP_MEETING_TOPIC"
+            );
         }
 
-        TopicName topicName = TopicName.of(project, topic);
+        TopicName topicName = TopicName.of(projectId, topic);
         return Publisher.newBuilder(topicName).build();
     }
 }
