@@ -57,6 +57,9 @@ jobs:
       id-token: write
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy ingest-api to Cloud Run
         uses: ./.github/actions/deploy-cloud-run
         with:
