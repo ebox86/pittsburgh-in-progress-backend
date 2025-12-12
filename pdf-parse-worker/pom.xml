@@ -36,6 +36,20 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
             <version>2.26.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax-grpc</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax-httpjson</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
@@ -50,6 +64,11 @@
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax-grpc</artifactId>
+            <version>2.54.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.google.api</groupId>
+            <artifactId>gax-httpjson</artifactId>
             <version>2.54.0</version>
         </dependency>
         <dependency>
