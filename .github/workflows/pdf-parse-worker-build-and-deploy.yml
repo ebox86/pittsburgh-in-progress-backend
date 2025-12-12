@@ -30,6 +30,9 @@ jobs:
           distribution: temurin
           java-version: '21'
 
+      - name: Build ingest-api dependency
+        run: mvn -B -DskipTests -f ingest-api/pom.xml install
+
       - name: Build Maven project
         working-directory: pdf-parse-worker
         run: mvn -B -DskipTests package

@@ -1,5 +1,5 @@
 FROM eclipse-temurin:21-jre
 WORKDIR /app
-COPY target/pdf-fetch-worker-*.jar /app/app.jar
+COPY target/pdf-parse-worker-*.jar /app/app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
