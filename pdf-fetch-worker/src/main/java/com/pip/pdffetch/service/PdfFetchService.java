@@ -58,6 +58,17 @@ public class PdfFetchService {
             throw new IllegalArgumentException("DocumentDiscoveryRequest and meetingUrl must be provided");
         }
 
+        String meetingId = Optional.ofNullable(request.getMeetingId())
+                .filter(id -> !id.isBlank())
+                .orElse("unknown");
+        String objectName = "meetings/" + meetingId + ".pdf";
+        BlobId blobId = BlobId.of(bucket, objectName);
+        Blob existingBlob = storage.get(blobId);
+        if (existingBlob != null) {
+            log.info("Skipping fetch for {} because gs://{}/{} already exists", request.getMeetingUrl(), bucket, objectName);
+            return new FetchResult(objectName, existingBlob.getContentType(), existingBlob.getSize());
+        }
+
         URI pdfUri = URI.create(request.getMeetingUrl());
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .uri(pdfUri)
@@ -79,38 +90,39 @@ public class PdfFetchService {
         byte[] body = response.body();
         int statusCode = response.statusCode();
 
-        if (statusCode != 200) {
-            Map<String, List<String>> headers = response.headers().map();
-            String snippet = extractResponseSnippet(body);
-            log.warn("Failed to fetch PDF from {} - status {}, headers {}, bodySnippet='{}'",
+        if (statusCode >= 200 && statusCode < 300) {
+            String contentType = response.headers()
+                    .firstValue("content-type")
+                    .orElse("application/octet-stream");
+
+            if (!contentType.toLowerCase().contains("application/pdf")) {
+                log.warn("PDF response for {} returned non-PDF content type {}", request.getMeetingId(), contentType);
+            }
+
+            long sizeBytes = body.length;
+            BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
+                    .setContentType(contentType)
+                    .build();
+
+            Blob blob = storage.create(blobInfo, body);
+            log.info("Stored PDF for {} into gs://{}/{} ({} bytes)", meetingId, bucket, objectName, sizeBytes);
+
+            return new FetchResult(objectName, blob.getContentType(), blob.getSize());
+        }
+
+        Map<String, List<String>> headers = response.headers().map();
+        String snippet = extractResponseSnippet(body);
+
+        if (statusCode == 403 || statusCode == 404) {
+            log.warn("Non-retryable status while fetching PDF from {}: {} - headers {}, bodySnippet='{}'",
                     request.getMeetingUrl(), statusCode, headers, snippet);
-            throw new IllegalStateException("Unexpected status " + statusCode
-                    + " while fetching PDF from " + request.getMeetingUrl());
+            return null;
         }
 
-        String contentType = response.headers()
-                .firstValue("content-type")
-                .orElse("application/octet-stream");
-
-        if (!contentType.toLowerCase().contains("application/pdf")) {
-            log.warn("PDF response for {} returned non-PDF content type {}", request.getMeetingId(), contentType);
-        }
-
-        long sizeBytes = body.length;
-        String meetingId = Optional.ofNullable(request.getMeetingId())
-                .filter(id -> !id.isBlank())
-                .orElse("unknown");
-        String objectName = "meetings/" + meetingId + ".pdf";
-
-        BlobId blobId = BlobId.of(bucket, objectName);
-        BlobInfo blobInfo = BlobInfo.newBuilder(blobId)
-                .setContentType(contentType)
-                .build();
-
-        Blob blob = storage.create(blobInfo, body);
-        log.info("Stored PDF for {} into gs://{}/{} ({} bytes)", meetingId, bucket, objectName, sizeBytes);
-
-        return new FetchResult(objectName, blob.getContentType(), blob.getSize());
+        log.warn("Failed to fetch PDF from {} - status {}, headers {}, bodySnippet='{}'",
+                request.getMeetingUrl(), statusCode, headers, snippet);
+        throw new IllegalStateException("Unexpected status " + statusCode
+                + " while fetching PDF from " + request.getMeetingUrl());
     }
 
     private static String extractResponseSnippet(byte[] body) {

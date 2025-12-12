@@ -1,6 +1,7 @@
 package com.pip.pdffetch.service;
 
 import com.google.cloud.storage.Blob;
+import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
 import com.pip.pdffetch.model.DocumentDiscoveryRequest;
@@ -21,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -81,7 +83,7 @@ class PdfFetchServiceTest {
     }
 
     @Test
-    void fetchAndStorePdf_non200ResponseThrows() throws Exception {
+    void fetchAndStorePdf_nonRetryableStatusReturnsNull() throws Exception {
         DocumentDiscoveryRequest request = new DocumentDiscoveryRequest();
         request.setMeetingId("meeting-404");
         request.setMeetingUrl("https://example.com/denied.pdf");
@@ -96,9 +98,50 @@ class PdfFetchServiceTest {
         when(httpClient.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any()))
                 .thenReturn(response);
 
+        PdfFetchService.FetchResult result = pdfFetchService.fetchAndStorePdf(request);
+        assertNull(result);
+        verify(storage, never()).create(any(BlobInfo.class), any());
+    }
+
+    @Test
+    void fetchAndStorePdf_serverErrorThrows() throws Exception {
+        DocumentDiscoveryRequest request = new DocumentDiscoveryRequest();
+        request.setMeetingId("meeting-500");
+        request.setMeetingUrl("https://example.com/error.pdf");
+
+        HttpResponse<byte[]> response = mock(HttpResponse.class);
+        when(response.statusCode()).thenReturn(500);
+        byte[] body = "server err".getBytes(StandardCharsets.UTF_8);
+        when(response.body()).thenReturn(body);
+        HttpHeaders headers = HttpHeaders.of(Map.of("content-type", List.of("text/plain")), (k, v) -> true);
+        when(response.headers()).thenReturn(headers);
+
+        when(httpClient.send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any()))
+                .thenReturn(response);
+
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
                 () -> pdfFetchService.fetchAndStorePdf(request));
-        assertEquals("Unexpected status 403 while fetching PDF from https://example.com/denied.pdf", thrown.getMessage());
+        assertEquals("Unexpected status 500 while fetching PDF from https://example.com/error.pdf", thrown.getMessage());
+        verify(storage, never()).create(any(BlobInfo.class), any());
+    }
+
+    @Test
+    void fetchAndStorePdf_existingObjectSkipsFetch() throws Exception {
+        DocumentDiscoveryRequest request = new DocumentDiscoveryRequest();
+        request.setMeetingId("meeting-123");
+        request.setMeetingUrl("https://example.com/meeting.pdf");
+
+        Blob existingBlob = mock(Blob.class);
+        when(existingBlob.getContentType()).thenReturn("application/pdf");
+        when(existingBlob.getSize()).thenReturn(2048L);
+        when(storage.get(BlobId.of("test-bucket", "meetings/meeting-123.pdf"))).thenReturn(existingBlob);
+
+        PdfFetchService.FetchResult result = pdfFetchService.fetchAndStorePdf(request);
+
+        assertEquals("meetings/meeting-123.pdf", result.objectName());
+        assertEquals("application/pdf", result.contentType());
+        assertEquals(2048L, result.sizeBytes());
+        verify(httpClient, never()).send(any(HttpRequest.class), ArgumentMatchers.<HttpResponse.BodyHandler<byte[]>>any());
         verify(storage, never()).create(any(BlobInfo.class), any());
     }
 }

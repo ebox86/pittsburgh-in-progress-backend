@@ -20,8 +20,10 @@ import java.util.Base64;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -85,5 +87,37 @@ class PubSubPushControllerTest {
                 eq(2048L));
 
         assertEquals("PC-2025-11-18", requestCaptor.getValue().getMeetingId());
+    }
+
+    @Test
+    void handlePubSubPush_clientErrorIsAcked() throws Exception {
+        DocumentDiscoveryRequest request = new DocumentDiscoveryRequest();
+        request.setType("document-discovery-request");
+        request.setMeetingId("PC-2025-11-18");
+        request.setMeetingUrl("https://example.com/fake.pdf");
+        request.setMeetingType("planning-commission");
+        request.setMeetingDate("2025-11-18");
+
+        when(pdfFetchService.fetchAndStorePdf(any(DocumentDiscoveryRequest.class)))
+                .thenThrow(new IllegalStateException("Unexpected status 403 while fetching PDF from https://example.com/fake.pdf"));
+        String documentJson = objectMapper.writeValueAsString(request);
+        String base64Data = Base64.getEncoder().encodeToString(documentJson.getBytes(StandardCharsets.UTF_8));
+        String payload = """
+                {
+                  "message": {
+                    "data": "%s",
+                    "messageId": "fake-id-456",
+                    "publishTime": "2025-11-18T12:00:00Z"
+                  },
+                  "subscription": "projects/pittsburgh-in-progress/subscriptions/test-doc-discover"
+                }
+                """.formatted(base64Data);
+
+        mockMvc.perform(post("/")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk());
+
+        verify(pdfStoredPublisherService, never()).publishPdfStored(any(), any(), any(), any(), anyLong());
     }
 }
