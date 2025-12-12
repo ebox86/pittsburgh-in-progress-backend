@@ -35,7 +35,7 @@ jobs:
 
       - name: Build Maven project
         working-directory: pdf-parse-worker
-        run: mvn -B -DskipTests package
+        run: mvn -B clean -DskipTests package
 
       - name: Log in to GHCR
         uses: docker/login-action@v2
