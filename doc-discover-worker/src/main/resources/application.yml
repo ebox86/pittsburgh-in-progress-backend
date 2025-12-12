@@ -1,0 +1,11 @@
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.pip.docdiscover: INFO
+
+pip:
+  project-id: ${PIP_PROJECT_ID:${GOOGLE_CLOUD_PROJECT:}}
+  document-topic: ${PIP_DOCUMENT_TOPIC:pgh-document-discovered}

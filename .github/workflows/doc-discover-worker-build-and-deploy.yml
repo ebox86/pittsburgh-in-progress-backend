@@ -1,0 +1,85 @@
+name: Build and deploy doc-discover-worker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'doc-discover-worker/**'
+      - '.github/workflows/doc-discover-worker-build-and-deploy.yml'
+  workflow_dispatch: {}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      IMAGE_NAME: ghcr.io/ebox86/pip-doc-discover-worker:main
+      IMAGE_NAME_LATEST: ghcr.io/ebox86/pip-doc-discover-worker:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build Maven project
+        working-directory: doc-discover-worker
+        run: mvn -B -DskipTests package
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t "${IMAGE_NAME}" \
+            -t "${IMAGE_NAME_LATEST}" \
+            doc-discover-worker
+
+      - name: Push Docker images
+        run: |
+          docker push "${IMAGE_NAME}"
+          docker push "${IMAGE_NAME_LATEST}"
+
+  deploy-cloud-run:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-doc-discover-worker:main
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: GCP auth (Workload Identity)
+        uses: ebox86/gh-custom-actions/gcloud-wif-auth@v1
+        with:
+          project_id: pittsburgh-in-progress
+          workload_identity_provider: ${{ secrets.GCP_PGH_WIP }}
+          service_account: ci-runner@pittsburgh-in-progress.iam.gserviceaccount.com
+
+      - name: Deploy doc-discover-worker to Cloud Run
+        uses: ebox86/gh-custom-actions/deploy-cloud-run@v1
+        with:
+          project_id: pittsburgh-in-progress
+          region: us-east4
+          service_name: pgh-doc-discover-worker
+          image: ${{ env.AR_IMAGE }}
