@@ -5,6 +5,7 @@ import com.pip.pdffetch.config.PdfFetchConfig;
 import com.pip.pdffetch.model.DocumentDiscoveryRequest;
 import com.pip.pdffetch.pubsub.PubSubMessage;
 import com.pip.pdffetch.pubsub.PubSubPushEnvelope;
+import com.pip.pdffetch.service.PdfFetchOutcome;
 import com.pip.pdffetch.service.PdfFetchService;
 import com.pip.pdffetch.service.PdfStoredPublisherService;
 import org.slf4j.Logger;
@@ -51,9 +52,9 @@ public class PubSubPushController {
             DocumentDiscoveryRequest request = objectMapper.readValue(decoded, DocumentDiscoveryRequest.class);
             log.info("Received document discovery request for {} from {}", request.getMeetingId(), request.getMeetingUrl());
 
-            PdfFetchService.FetchResult fetchResult;
+            PdfFetchOutcome outcome;
             try {
-                fetchResult = pdfFetchService.fetchAndStorePdf(request);
+                outcome = pdfFetchService.fetchAndStorePdf(request);
             } catch (IllegalStateException e) {
                 if (isClientErrorStatus(e.getMessage())) {
                     // Treat 4xx errors as non-retryable to avoid hammering the city’s server.
@@ -63,16 +64,22 @@ public class PubSubPushController {
                 throw e;
             }
 
-            if (fetchResult == null) {
+            if (outcome == null) {
                 log.warn("Skipping publish for {} at {} ({}): fetch returned non-retryable status", request.getMeetingId(), request.getMeetingUrl(), messageContext);
                 return ResponseEntity.ok().build();
             }
+            log.info("PDF fetch completed for meeting {} with status {} (gs://{}/{}; {} bytes)",
+                    request.getMeetingId(),
+                    outcome.status(),
+                    outcome.blob().getBucket(),
+                    outcome.blob().getName(),
+                    outcome.blob().getSize());
             pdfStoredPublisherService.publishPdfStored(
                     request,
                     pdfFetchConfig.getBucket(),
-                    fetchResult.objectName(),
-                    fetchResult.contentType(),
-                    fetchResult.sizeBytes());
+                    outcome.blob().getName(),
+                    outcome.blob().getContentType(),
+                    outcome.blob().getSize());
 
             return ResponseEntity.ok().build();
         } catch (Exception e) {
