@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+
+pip:
+  meeting:
+    topic: ${PIP_MEETING_TOPIC:pgh-meeting-discovered}
