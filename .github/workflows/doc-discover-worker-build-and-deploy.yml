@@ -73,7 +73,7 @@ jobs:
         uses: ebox86/gh-custom-actions/gcloud-wif-auth@v1
         with:
           project_id: pittsburgh-in-progress
-          workload_identity_provider: ${{ secrets.GCP_PGH_WIP }}
+          workload_identity_provider: projects/${{ secrets.GCP_PGH_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider
           service_account: ci-runner@pittsburgh-in-progress.iam.gserviceaccount.com
 
       - name: Deploy doc-discover-worker to Cloud Run
