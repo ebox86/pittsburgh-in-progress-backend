@@ -1,4 +1,4 @@
-package com.pip.pdffetch.pubsub;
+package com.pip.ingest.pubsub;
 
 public class PubSubPushEnvelope {
 

@@ -7,7 +7,7 @@ import com.google.protobuf.ByteString;
 import com.google.cloud.pubsub.v1.Publisher;
 import com.google.pubsub.v1.PubsubMessage;
 import com.pip.pdffetch.model.DocumentDiscoveryRequest;
-import com.pip.pdffetch.model.PdfStoredEvent;
+import com.pip.ingest.model.PdfStoredEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,6 +38,8 @@ public class PdfStoredPublisherService {
         event.setObjectName(objectName);
         event.setContentType(contentType);
         event.setSizeBytes(sizeBytes);
+        event.setMeetingType(request.getMeetingType());
+        event.setMeetingDate(request.getMeetingDate());
 
         byte[] payload;
         try {

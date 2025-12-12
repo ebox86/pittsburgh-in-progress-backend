@@ -1,4 +1,4 @@
-package com.pip.pdffetch.model;
+package com.pip.ingest.model;
 
 public class PdfStoredEvent {
 
@@ -9,6 +9,8 @@ public class PdfStoredEvent {
     private String objectName;
     private String contentType;
     private long sizeBytes;
+    private String meetingType;
+    private String meetingDate;
 
     public PdfStoredEvent() {
     }
@@ -67,5 +69,21 @@ public class PdfStoredEvent {
 
     public void setSizeBytes(long sizeBytes) {
         this.sizeBytes = sizeBytes;
+    }
+
+    public String getMeetingType() {
+        return meetingType;
+    }
+
+    public void setMeetingType(String meetingType) {
+        this.meetingType = meetingType;
+    }
+
+    public String getMeetingDate() {
+        return meetingDate;
+    }
+
+    public void setMeetingDate(String meetingDate) {
+        this.meetingDate = meetingDate;
     }
 }
