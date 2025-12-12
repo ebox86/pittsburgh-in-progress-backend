@@ -6,5 +6,5 @@ logging:
     root: INFO
 
 pip:
-  meeting:
-    topic: ${PIP_MEETING_TOPIC:pgh-meeting-discovered}
+  meeting-topic: ${PIP_MEETING_TOPIC:pgh-meeting-discovered}
+  project-id: ${PIP_PROJECT_ID:${GOOGLE_CLOUD_PROJECT:}}
