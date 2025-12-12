@@ -17,8 +17,8 @@ jobs:
       packages: write
 
     env:
-      IMAGE_MAIN: ghcr.io/ebox86/pip-pdf-parse-worker:main
-      IMAGE_SHA: ghcr.io/ebox86/pip-pdf-parse-worker:${{ github.sha }}
+      IMAGE_NAME_SHA: ghcr.io/ebox86/pip-pdf-parse-worker:${{ github.sha }}
+      IMAGE_NAME_LATEST: ghcr.io/ebox86/pip-pdf-parse-worker:latest
 
     steps:
       - name: Checkout repository
@@ -47,14 +47,14 @@ jobs:
       - name: Build Docker image
         run: |
           docker build \
-            -t "${IMAGE_MAIN}" \
-            -t "${IMAGE_SHA}" \
+            -t "${IMAGE_NAME_SHA}" \
+            -t "${IMAGE_NAME_LATEST}" \
             pdf-parse-worker
 
       - name: Push Docker images
         run: |
-          docker push "${IMAGE_MAIN}"
-          docker push "${IMAGE_SHA}"
+          docker push "${IMAGE_NAME_SHA}"
+          docker push "${IMAGE_NAME_LATEST}"
 
   deploy-cloud-run:
     needs: build-and-push
