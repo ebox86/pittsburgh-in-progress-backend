@@ -46,3 +46,23 @@ jobs:
         run: |
           docker push ghcr.io/ebox86/pip-ingest-api:main
           docker push ghcr.io/ebox86/pip-ingest-api:latest
+
+  deploy-cloud-run:
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Deploy ingest-api to Cloud Run
+        uses: ./.github/actions/deploy-cloud-run
+        with:
+          project_id: pittsburgh-in-progress
+          region: us-east4
+          service_name: pgh-ingest-api
+          image: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-ingest-api:main
+          workload_identity_provider: projects/${{ secrets.GCP_PGH_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/gh-pool/providers/gh-provider
+          service_account: ci-runner@pittsburgh-in-progress.iam.gserviceaccount.com
