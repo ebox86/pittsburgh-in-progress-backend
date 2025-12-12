@@ -35,9 +35,13 @@ public class PdfParseConfig {
         return StorageOptions.getDefaultInstance().getService();
     }
 
+    @Bean
+    public TopicName projectCandidateTopicName() {
+        return TopicName.of(projectId, projectCandidateTopic);
+    }
+
     @Bean(destroyMethod = "shutdown")
-    public Publisher projectCandidatePublisher() {
-        TopicName topicName = TopicName.of(projectId, projectCandidateTopic);
+    public Publisher projectCandidatePublisher(TopicName topicName) {
         try {
             return Publisher.newBuilder(topicName).build();
         } catch (IOException e) {
