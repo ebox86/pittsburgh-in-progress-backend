@@ -1,0 +1,44 @@
+name: 'Deploy to Cloud Run'
+description: 'Update a Cloud Run service to a given image via Workload Identity'
+
+inputs:
+  project_id:
+    description: 'GCP project ID'
+    required: true
+  region:
+    description: 'GCP region'
+    required: true
+  service_name:
+    description: 'Cloud Run service name'
+    required: true
+  image:
+    description: 'Full image URL (Artifact Registry / GCR)'
+    required: true
+  workload_identity_provider:
+    description: 'Full Workload Identity Provider resource path'
+    required: true
+  service_account:
+    description: 'GCP service account email to impersonate'
+    required: true
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Authenticate to Google Cloud via Workload Identity
+      uses: google-github-actions/auth@v2
+      with:
+        workload_identity_provider: ${{ inputs.workload_identity_provider }}
+        service_account: ${{ inputs.service_account }}
+
+    - name: Set up gcloud
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Update Cloud Run service
+      shell: bash
+      run: |
+        gcloud config set project "${{ inputs.project_id }}"
+        gcloud run services update "${{ inputs.service_name }}" \
+          --platform=managed \
+          --region="${{ inputs.region }}" \
+          --image="${{ inputs.image }}" \
+          --quiet
