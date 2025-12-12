@@ -1,0 +1,12 @@
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.pip.pdffetch: INFO
+
+pip:
+  project-id: ${PIP_PROJECT_ID:${GOOGLE_CLOUD_PROJECT:}}
+  pdf-bucket: ${PIP_PDF_BUCKET:pgh-pdfs}
+  pdf-stored-topic: ${PIP_PDF_STORED_TOPIC:pgh-pdf-stored}
