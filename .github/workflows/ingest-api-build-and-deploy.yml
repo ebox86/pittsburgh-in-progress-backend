@@ -63,7 +63,7 @@ jobs:
       id-token: write
 
     env:
-      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-ingest-api:main
+      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-ingest-api:latest
 
     steps:
       - name: Checkout repository
