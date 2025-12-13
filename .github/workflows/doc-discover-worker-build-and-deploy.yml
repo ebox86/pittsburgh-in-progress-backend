@@ -63,7 +63,7 @@ jobs:
       id-token: write
 
     env:
-      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-doc-discover-worker:latest
+      AR_IMAGE: us-east4-docker.pkg.dev/pittsburgh-in-progress/ghcr/ebox86/pip-doc-discover-worker:${{ github.sha }}
 
     steps:
       - name: Checkout repository
