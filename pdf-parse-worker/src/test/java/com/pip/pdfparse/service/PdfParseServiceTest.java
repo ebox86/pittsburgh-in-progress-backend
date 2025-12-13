@@ -6,7 +6,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.pip.ingest.model.PdfStoredEvent;
-import com.pip.pdfparse.model.PdfParsedEvent;
+import com.pip.ingest.model.ProjectCandidateEvent;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
@@ -67,12 +67,13 @@ class PdfParseServiceTest {
         PdfParseResultStatus status = pdfParseService.parseAndPublish(event);
 
         assertEquals(PdfParseResultStatus.PARSED_AND_PUBLISHED, status);
-        ArgumentCaptor<PdfParsedEvent> captor = ArgumentCaptor.forClass(PdfParsedEvent.class);
+        ArgumentCaptor<ProjectCandidateEvent> captor = ArgumentCaptor.forClass(ProjectCandidateEvent.class);
         verify(publisher).publishProjectCandidate(captor.capture());
-        PdfParsedEvent parsed = captor.getValue();
+        ProjectCandidateEvent parsed = captor.getValue();
         assertEquals("meeting-123", parsed.meetingId());
         assertEquals("test-bucket", parsed.bucket());
         assertEquals("test.pdf", parsed.objectName());
+        assertEquals("https://example.com/meeting.pdf", parsed.originalUrl());
     }
 
     private static byte[] createTestPdf(String text) throws IOException {

@@ -5,7 +5,7 @@ import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobId;
 import com.google.cloud.storage.Storage;
 import com.pip.ingest.model.PdfStoredEvent;
-import com.pip.pdfparse.model.PdfParsedEvent;
+import com.pip.ingest.model.ProjectCandidateEvent;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.slf4j.Logger;
@@ -43,7 +43,7 @@ public class PdfParseService {
             int pageCount = document.getNumberOfPages();
             long sizeBytes = blob != null ? blob.getSize() : event.getSizeBytes();
 
-            PdfParsedEvent parsedEvent = new PdfParsedEvent(
+            ProjectCandidateEvent parsedEvent = new ProjectCandidateEvent(
                     "pdf-parsed",
                     event.getMeetingId(),
                     event.getMeetingType(),

@@ -1,11 +1,11 @@
-package com.pip.pdfparse.model;
+package com.pip.ingest.model;
 
-public record PdfParsedEvent(
+public record ProjectCandidateEvent(
         String type,
         String meetingId,
         String meetingType,
         String meetingDate,
-        String sourceUrl,
+        String originalUrl,
         String bucket,
         String objectName,
         int pageCount,
