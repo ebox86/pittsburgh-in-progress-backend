@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.pip</groupId>
+    <artifactId>pittsburgh-in-progress-backend</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>Pittsburgh In Progress Backend</name>
+
+    <properties>
+        <java.version>21</java.version>
+    </properties>
+
+    <modules>
+        <module>ingest-api</module>
+        <module>pdf-fetch-worker</module>
+        <module>pdf-parse-worker</module>
+        <module>doc-discover-worker</module>
+    </modules>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>libraries-bom</artifactId>
+                <version>26.72.0</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-pubsub</artifactId>
+                <version>1.144.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api</groupId>
+                <artifactId>gax</artifactId>
+                <version>2.72.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api</groupId>
+                <artifactId>gax-grpc</artifactId>
+                <version>2.72.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.api</groupId>
+                <artifactId>gax-httpjson</artifactId>
+                <version>2.72.2</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-credentials</artifactId>
+                <version>1.41.0</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-oauth2-http</artifactId>
+                <version>1.41.0</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+</project>

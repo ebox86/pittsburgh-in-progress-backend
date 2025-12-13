@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version>
-        <relativePath/>
+        <groupId>com.pip</groupId>
+        <artifactId>pittsburgh-in-progress-backend</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <groupId>com.pip</groupId>
@@ -36,26 +36,44 @@
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-storage</artifactId>
             <version>2.26.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax-grpc</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.api</groupId>
+                    <artifactId>gax-httpjson</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.auth</groupId>
+                    <artifactId>google-auth-library-credentials</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.google.auth</groupId>
+                    <artifactId>google-auth-library-oauth2-http</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.cloud</groupId>
             <artifactId>google-cloud-pubsub</artifactId>
-            <version>1.144.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax</artifactId>
-            <version>2.72.2</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax-grpc</artifactId>
-            <version>2.72.2</version>
         </dependency>
         <dependency>
             <groupId>com.google.api</groupId>
             <artifactId>gax-httpjson</artifactId>
-            <version>2.72.2</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
@@ -65,12 +83,10 @@
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-credentials</artifactId>
-            <version>1.41.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.auth</groupId>
             <artifactId>google-auth-library-oauth2-http</artifactId>
-            <version>1.41.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
