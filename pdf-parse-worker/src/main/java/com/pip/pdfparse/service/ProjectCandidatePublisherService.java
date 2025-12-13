@@ -7,7 +7,7 @@ import com.google.cloud.pubsub.v1.Publisher;
 import com.google.protobuf.ByteString;
 import com.google.pubsub.v1.PubsubMessage;
 import com.google.pubsub.v1.TopicName;
-import com.pip.pdfparse.model.PdfParsedEvent;
+import com.pip.ingest.model.ProjectCandidateEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -27,7 +27,7 @@ public class ProjectCandidatePublisherService {
         this.topicName = topicName;
     }
 
-    public void publishProjectCandidate(PdfParsedEvent event) {
+    public void publishProjectCandidate(ProjectCandidateEvent event) {
         byte[] payload;
         try {
             payload = objectMapper.writeValueAsBytes(event);

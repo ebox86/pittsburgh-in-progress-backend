@@ -25,6 +25,7 @@
         <module>pdf-fetch-worker</module>
         <module>pdf-parse-worker</module>
         <module>doc-discover-worker</module>
+        <module>project-link-worker</module>
     </modules>
 
     <dependencyManagement>

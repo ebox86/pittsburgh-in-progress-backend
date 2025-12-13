@@ -1,0 +1,14 @@
+server:
+  port: ${PORT:8080}
+
+logging:
+  level:
+    root: INFO
+    com.pip.projectlink: INFO
+
+pip:
+  project-id: ${PIP_PROJECT_ID:${GOOGLE_CLOUD_PROJECT:}}
+  environment: ${PIP_ENVIRONMENT:dev}
+  projects:
+    store: ${PIP_PROJECTS_STORE:memory}
+    collection: ${PIP_PROJECTS_COLLECTION:pgh-projects}
