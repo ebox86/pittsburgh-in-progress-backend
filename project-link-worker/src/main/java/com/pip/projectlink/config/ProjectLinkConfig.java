@@ -8,18 +8,15 @@ public class ProjectLinkConfig {
 
     private final String projectId;
     private final String environment;
-    private final String projectsStore;
-    private final String projectsCollection;
+    private final ProjectStoreProperties projects;
 
     public ProjectLinkConfig(
             @Value("${pip.project-id:${PIP_PROJECT_ID:${GOOGLE_CLOUD_PROJECT:}}}") String projectId,
             @Value("${pip.environment:dev}") String environment,
-            @Value("${pip.projects.store:memory}") String projectsStore,
-            @Value("${pip.projects.collection:projects}") String projectsCollection) {
+            ProjectStoreProperties projects) {
         this.projectId = projectId;
         this.environment = environment;
-        this.projectsStore = projectsStore;
-        this.projectsCollection = projectsCollection;
+        this.projects = projects;
     }
 
     public String getProjectId() {
@@ -31,10 +28,10 @@ public class ProjectLinkConfig {
     }
 
     public String getProjectsStore() {
-        return projectsStore;
+        return projects.getStore();
     }
 
     public String getProjectsCollection() {
-        return projectsCollection;
+        return projects.getCollection();
     }
 }
